@@ -1,0 +1,80 @@
+[global_config]
+[keybindings]
+[profiles]
+  [[default]]
+    login_shell = True
+    background_color = "#151515"
+    exit_action = hold
+    cursor_color = "#00FF00"
+[layouts]
+  [[default]]
+    [[[child0]]]
+      position = 65:24
+      type = Window
+      order = 0
+      parent = ""
+      size = 1301, 744
+    [[[child1]]]
+      labels = tasks, job, system
+      type = Notebook
+      order = 0
+      parent = child0
+    [[[child2]]]
+      position = 355
+      type = VPaned
+      order = 0
+      parent = child1
+    [[[child5]]]
+      position = 354
+      type = VPaned
+      order = 1
+      parent = child1
+    [[[child8]]]
+      position = 648
+      type = HPaned
+      order = 2
+      parent = child1
+    [[[terminal10]]]
+      profile = default
+      command = mc
+      type = Terminal
+      order = 1
+      parent = child8
+    [[[terminal3]]]
+      profile = default
+      command = "cd /home/aum/PycharmProjects/viewer &&  git status && /bin/bash"
+      type = Terminal
+      order = 0
+      parent = child2
+    [[[terminal4]]]
+      profile = default
+      command = "cd /home/aum/soft && /bin/bash"
+      type = Terminal
+      order = 1
+      parent = child2
+    [[[terminal7]]]
+      profile = default
+      command = "uptime && /bin/bash"
+      type = Terminal
+      order = 1
+      parent = child5
+    [[[terminal6]]]
+      profile = default
+      command = "ls -la && /bin/bash"
+      type = Terminal
+      order = 0
+      parent = child5
+    [[[terminal9]]]
+      profile = default
+      command = htop
+      type = Terminal
+      order = 0
+      parent = child8
+  [[default_old]]
+    [[[child1]]]
+      type = Terminal
+      parent = window0
+    [[[window0]]]
+      type = Window
+      parent = ""
+[plugins]
