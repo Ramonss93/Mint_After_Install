@@ -1,47 +1,92 @@
-#1/usr/bin/shell
+#!/bin/bash
 #projects to download
 
 # Source the logger
-source bash_logger.sh
-source bash_logger.conf
+source ./bash_logger/bash_logger.sh
+source ./bash_logger/bash_logger.conf
 
 #home user path
-USER_HOME=$(eval echo ~${SUDO_USER})
+declare -r  USER_HOME=$(eval echo ~${SUDO_USER})
 
 #folder for soft
-SOFT_DIR="soft_test"
+declare -r  SOFT_DIR="soft"
 
 #current script dir
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+declare -r  SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+#resources folder
+declare -r  SOURCE_DIR="$SCRIPT_DIR/sources"
 
 ## declare an array of Git repos
-declare -a REPOS=("https://github.com/Dionach/CMSmap.git" \ #web vurn scanner
-				  "https://github.com/sullo/nikto" \ #web vuln scanner
-				  "https://github.com/HispaGatos/openvas_install.git" \ #openvas repo for install
-				  "https://github.com/andresriancho/w3af.git" \ #web vuln scanner
-				  "https://github.com/sqlmapproject/sqlmap.git" #sqli scanner
+declare -a REPOS=("https://github.com/Dionach/CMSmap.git"
+				  "https://github.com/sullo/nikto"
+				  "https://github.com/HispaGatos/openvas_install.git"
+				  "https://github.com/andresriancho/w3af.git"
+				  "https://github.com/sqlmapproject/sqlmap.git"
 				  )
 
 #Main environment for project deploy
-declare -a REQ=("python2.7" "python2.7-dev" "libpq-dev" "git" "an")
+declare -a REQ=(
+    "python2.7"
+    "python2.7-dev"
+    "python-setuptools"
+    "libpq-dev"
+    "git"
+    "an"
+    "p7zip-rar"
+    "p7zip-full"
+    "libffi-dev"
+    "python-numpy"
+    "python-scipy"
+    "python-matplotlib"
+    "ipython"
+    "ipython-notebook"
+    "python-pandas"
+    "python-sympy"
+    "python-nose"
+    "guake"
+    "mc"
+    "wget"
 
-check_sources(){
+ )
+
+#TODO make function to put programm into startup
+# to make a delay set this
+# 	[Desktop Entry]
+# Encoding=UTF-8
+# Name=mintUpdate
+# Comment=Linux Mint Update Manager
+# Icon=stock_lock
+# Exec=mintupdate-launcher
+# Terminal=false
+# Type=Application
+# Categories=
+# X-GNOME-Autostart-Delay=20
+# X-MATE-Autostart-Delay=20
+
+startup_app(){
+	sudo ln -s /usr/share/applications/guake.desktop /etc/xdg/autostart/
+
+
+}
+# check_sources(){
 	#check that all needed source are exist
 	#TODO
 	#check req{2\3}.txt file exist
-}
+# }
+
 #check if module\package exists on system
 check_apps(){
-	# sudo apt-get update &> /dev/null
-	INFO "apt-get update is DONE"
+	sudo apt update -qq
+	WARN "apt-get update is DONE"
 	for app in "${REQ[@]}";do
 		res=`aptitude show ${app} | grep State`	
 		
 		case $res in
-	    	"State: installed"|installed) INFO ${app} : ${res} ;;
+	    	"State: installed"|installed) INFO "${app} : ${res}" ;;
 	        *) INFO  " ${app} Not installed"
-			sudo apt-get install --fix-broken --quiet --assume-yes ${app}
-			sudo apt-get autoclean 			
+			sudo apt install --fix-broken --quiet --assume-yes ${app}
+			sudo apt autoclean 			
 	        ;;        	
 	    esac
 	done;	
@@ -91,7 +136,7 @@ create_venv_py2(){
 	pip install --upgrade pip
 	pip install --upgrade setuptools
 	pip install --upgrade wheel
-	pip install  --upgrade -r "$SCRIPT_DIR/req2.txt"	
+	pip install  --upgrade -r "$SOURCE_DIR/req2.txt"	
 }
 create_venv_py3(){
 	cd $USER_HOME
@@ -100,14 +145,33 @@ create_venv_py3(){
 	pip install --upgrade pip
 	pip install --upgrade setuptools
 	pip install --upgrade wheel
-	pip install -r "$SCRIPT_DIR/req3.txt"
+	pip install -r "$SOURCE_DIR/req3.txt"
+}
+
+postgres_setup(){
+	WARN "Instaling postgrSQL 9.5"
+	declare -r  PG_REPO="/etc/apt/sources.list.d/postgresql.list"
+	sudo touch $PG_REPO
+	sudo chmod a+wrx $PG_REPO
+	echo "deb http://apt.postgresql.org/pub/repos/apt/ trusty-pgdg main 9.5" > $PG_REPO 
+	if [ -f /etc/apt/sources.list.d/postgresql.list ] ; then WARN " File $PG_REPO is created"; fi
+	wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
+	apt-get update -qq
+	apt-get install --fix-broken  --assume-yes postgresql-9.5  postgresql-server-dev-9.5 postgresql-9.5-slony1 postgresql-9.5-postgis-2.2 pgadmin3
+	sudo service postgresql restart
+	#CHECK how to create user and other 
+	# http://www.codeproject.com/Articles/898303/Installing-and-Configuring-PostgreSQL-on-Linux-Min
+	# http://stackoverflow.com/questions/1471571/how-to-configure-postgresql-for-the-first-time
+	# sudo -u postgres createdb mytestdb
+	WARN "Instaling postgrSQL 9.5 done!"
 }
 #1. create $SOFT_DIR dir in current user root folder
 init (){
 	cd $USER_HOME
-	INFO "Current user" -- `whoami`
-	INFO "Current path" -- `pwd`
-	INFO "System" -- `uname -a`
+	WARN "====================START SYSTEM INIT============================="
+	INFO "Current user: `whoami`"
+	INFO "Current path: `pwd`"
+	INFO "System `uname -a`"
 	check_apps #check dependencies
 
 	if [ ! -d "$USER_HOME/$SOFT_DIR" ]; then
@@ -120,21 +184,27 @@ init (){
 		cd $SOFT_DIR
 	fi
 	#clone repos
+	}
+
+instal_repos(){
+	cd $SOFT_DIR
 	for i in "${REPOS[@]}"; do
 		#TODO check if repo is alive
-		# status=$(curl -s --head -w %{http_code} $i -o /dev/null)
-		# echo $status
-
-		install_from_git $i
+		WARN $i
+		status=$(curl -s --head -w %{http_code} $i -o /dev/null)
+		echo $status
+		git clone $i
+		# install_from_git $i
 	done 	
+
 }
 
-
 ###RUN SETUP###	
-init
-create_venv_py2
-create_venv_py3
-
+instal_repos
+# postgres_setup
+# init
+# create_venv_py2
+# create_venv_py2y3
 ###########TODO make auto install these packages
 #DIRB - URL Bruteforcer
 #http://sourceforge.net/projects/dirb/files/dirb/2.22/dirb222.tar.gz/download
